@@ -1,0 +1,171 @@
+version: 2.1
+
+jobs:
+  lint:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: "Install Dependencies"
+          command: "pip install flake8"
+      - run:
+          name: "Linting"
+          command: "flake8"
+
+  test:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: "Install Dependencies"
+          command: "pip install pytest && pip install -r requirements.txt"
+      - run:
+          name: "Run Tests"
+          command: "pytest"
+
+  build-fastapi-app:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: "Install Dependencies"
+          command: "pip install -r requirements.txt"
+      - run:
+          name: "Build FastAPI App"
+          command: |
+            fastapi run &
+            PID=$!
+            sleep 5
+            curl --fail http://localhost:8000
+            if [ $? -eq 0 ]; then
+              echo "Application started successfully, stopping server."
+              kill $PID
+            else
+              echo "App is not running. Something is wrong."
+              exit 1
+            fi
+
+
+  bump-version:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: "Bump Version"
+          command: |
+            # Example script to bump version
+            python bump_version.py
+      - run:
+          name: "Commit and Push Version Bump"
+          command: |
+            git config user.name "CircleCI"
+            git config user.email "circleci@outfit7.com"
+            git add version.txt
+            git commit -m "Bump version [skip ci]"
+            git tag $(cat version.txt)
+            git push origin master --tags
+
+
+  build-docker-image-and-push-it:
+    docker:
+      - image: cimg/gcp:2024.03.1
+    steps:
+      - checkout
+      - run:
+          name: "Pull Latest Changes"
+          command: |
+            git pull origin master
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: "Read Version Variable"
+          command: |
+            echo 'export VERSION_VAR=$(cat version.txt)' >> $BASH_ENV
+            source $BASH_ENV
+      - run:
+          name: Configure Docker to use gcloud as a credential helper
+          command: |
+            echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
+            gcloud auth configure-docker --quiet
+      - run:
+          name: "Build Docker Image"
+          command: "docker build -t gcr.io/$GCP_PROJECT_ID/cts:$VERSION_VAR ."
+      - run:
+          name: "Push Docker Image to registry"
+          command: "docker push gcr.io/$GCP_PROJECT_ID/cts:$VERSION_VAR"
+
+
+  deploy-to-gcp:
+    docker:
+      - image: cimg/gcp:2024.03.1
+    steps:
+    - checkout
+    - add_ssh_keys:
+        fingerprints:
+        - "SHA256:bratxNV/SR4f6Zr+sCos3XmP0Faa1Kfa32dPSUzsbmg"
+    - run:
+        name: "Install public SSH Key"
+        command: |
+          echo "$SSH_KEY_PUB" | base64 --decode > $HOME/.ssh/id_ed25519.pub
+          chmod 600 $HOME/.ssh/id_ed25519.pub
+    - run:
+          name: "Pull Latest Changes"
+          command: |
+            git pull origin master
+    - run:
+        name: "Read Version Variable"
+        command: |
+          echo 'export VERSION_VAR=$(cat version.txt)' >> $BASH_ENV
+          source $BASH_ENV
+    - run:
+        name: "Authenticate with GCP using Service Account"
+        command: |
+          echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
+    - run:
+        name: "Set GCP Project ID"
+        command: |
+          gcloud config set project $GCP_PROJECT_ID
+    - run:
+        name: "Deploy to GCP VM"
+        command: |
+          mv $HOME/.ssh/id_rsa* $HOME/.ssh/id_ed25519
+          gcloud compute ssh $VM_USER@$VM_NAME --zone $VM_ZONE --ssh-key-file $HOME/.ssh/id_ed25519 --command "\
+          docker stop cts-outfit7 || true && \
+          docker rm cts-outfit7 || true && \
+          docker pull gcr.io/$GCP_PROJECT_ID/cts:$VERSION_VAR && \
+          docker run -d --name cts-outfit7 -p 80:8000 gcr.io/$GCP_PROJECT_ID/cts:$VERSION_VAR" \
+          --strict-host-key-checking=no
+
+workflows:
+  build-and-deploy:
+    jobs:
+      - lint
+      - test
+      - build-fastapi-app
+      - bump-version:
+          requires:
+            - lint
+            - test
+            - build-fastapi-app
+          filters:
+            branches:
+              only:
+                - master
+      - build-docker-image-and-push-it:
+          requires:
+            - bump-version
+          filters:
+            branches:
+              only:
+                - master
+      - deploy-to-gcp:
+          requires:
+            - build-docker-image-and-push-it
+          filters:
+            branches:
+              only:
+                - master
