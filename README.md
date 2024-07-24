@@ -14,11 +14,15 @@ This is a simple FastAPI application with two endpoints: a root endpoint that re
     ```sh
     cd cts
     ```
-5. **Install requirements with pip**:
+5. **Install pre-commit hooks**:
+    ```sh
+    ./install-hooks.sh
+    ```
+6. **Install requirements with pip**:
     ```sh
     pip3 install -r requirements.txt
     ```
-6. **Run FastAPI application**:
+7. **Run FastAPI application**:
     ```sh
     fastapi dev  # for development environment
     fastapi run  # for production environment
@@ -35,11 +39,15 @@ This is a simple FastAPI application with two endpoints: a root endpoint that re
     ```sh
     cd cts
     ```
-4. **Build Docker image**:
+4. **Install pre-commit hooks**:
+    ```sh
+    ./install-hooks.sh
+    ```
+5. **Build Docker image**:
     ```sh
     docker build -t <image_name>:<image_tag> .
     ```
-5. **Run Docker container and expose it on some host port**:
+6. **Run Docker container and expose it on some host port**:
     ```sh
     docker run -d -p <host_port>:8000 <image_name>:<image_tag>
     ```

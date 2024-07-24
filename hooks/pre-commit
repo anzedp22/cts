@@ -1,0 +1,5 @@
+#!/bin/sh
+if git diff --cached --name-only | grep -q '^version.txt$'; then
+  echo "Direct changes to version.txt are not allowed. Please use the CI/CD pipeline to update this file."
+  exit 1
+fi
