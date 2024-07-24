@@ -40,7 +40,7 @@ For this project I used circleci. Every commit on any branch will trigger a pipe
 merge on the `master` branch will also trigger jobs to bump the app version (by executing the `bump_version.py` script), build a Docker image with the name `<GCR>:<version>`, push the 
 image to the repository, and deploy the latest version as a Docker container on a virtual machine inside GCP.
 
-## Version bump
+## Version bump 
 
 The bump script retrieves the latest Git tag and the commit message since that tag. Based on the commit message, it determines the type of version bump needed: major for "BREAKING CHANGE" 
 message, minor for "feat" message, and patch if neither condition is met. If no tags are found, it initializes the version to v1.0.0.
