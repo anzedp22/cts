@@ -36,11 +36,13 @@ Compute Instance Admin (v1), and Service Account User. Additionally, I created a
 
 ## How does CI/CD pipeline works?
 
-For this project I used circleci. Every commit on any branch will trigger a pipeline job that lints the code, tests the code, runs the application, and checks if a `curl` command on the root path works. Any commit or 
-merge on the `master` branch will also trigger jobs to bump the app version (by executing the `bump_version.py` script), build a Docker image with the name `<GCR>:<version>`, push the 
-image to the repository, and deploy the latest version as a Docker container on a virtual machine inside GCP.
+For this project I used circleci. Every commit on any branch will trigger a pipeline job that lints the code, tests the code, runs the application, and checks if a `curl` command on 
+the root path works. Any commit or merge on the `master` branch will also trigger jobs to bump the app version (by executing the `bump_version.py` script), build a Docker image with 
+the name `<GCR>:<version>`, push the image to the repository, and deploy the latest version as a Docker container on a virtual machine inside GCP.
 
-## Version bump 
+After merging any branch into master, the branch is deleted in the GitHub repository. Make sure to delete it locally and pull the latest changes.
+
+## Version bump
 
 The bump script retrieves the latest Git tag and the commit message since that tag. Based on the commit message, it determines the type of version bump needed: major for "BREAKING CHANGE" 
-message, minor for "feat" message, and patch if neither condition is met. If no tags are found, it initializes the version to v1.0.0.
+message, minor for "feat" at the start of message, and patch if neither condition is met. If no tags are found, it initializes the version to v1.0.0.
