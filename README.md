@@ -36,7 +36,7 @@ Compute Instance Admin (v1), and Service Account User. Additionally, I created a
 
 ## How does CI/CD pipeline works?
 
-Every commit on any branch will trigger a pipeline job that lints the code, tests the code, runs the application, and checks if a `curl` command on the root path works. Any commit or 
+For this project I used circleci. Every commit on any branch will trigger a pipeline job that lints the code, tests the code, runs the application, and checks if a `curl` command on the root path works. Any commit or 
 merge on the `master` branch will also trigger jobs to bump the app version (by executing the `bump_version.py` script), build a Docker image with the name `<GCR>:<version>`, push the 
 image to the repository, and deploy the latest version as a Docker container on a virtual machine inside GCP.
 
