@@ -88,3 +88,120 @@ After merging any branch into master, the branch is deleted in the GitHub reposi
 
 The bump script retrieves the latest Git tag and the commit message since that tag. Based on the commit message, it determines the type of version bump needed: major for "BREAKING CHANGE" 
 message, minor for "feat" at the start of message, and patch if neither condition is met. If no tags are found, it initializes the version to v1.0.0.
+
+## Automatic scaling with kubernetes
+
+For automatic scaling I would use Kubernetes and its HPA (horizontal pod autoscaling). Kubernetes also ensures high availability by automatically rescheduling pods to other healthy nodes in 
+the cluster if one of the nodes goes down, thereby maintaining the desired state and minimizing downtime.
+
+1. **Install Kubernetes**: I would use a managed Kubernetes service like Google Kubernetes Engine (GKE) or on-prem kubernetes cluster with at least 3 nodes with enough CPU and memory.  
+
+2. **Create Kubernetes Deployment**:
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: cts-deployment
+    spec:
+      selector:
+        matchLabels:
+          app: cts
+      template:
+        metadata:
+          labels:
+            app: cts
+        spec:
+          containers:
+          - name: cts
+            image: gcr.io/<GCP_PROJECT_ID>/cts:<VERSION_VAR>
+            imagePullPolicy: IfNotPresent
+            ports:
+            - containerPort: 8000
+            resources:
+              requests:
+                cpu: "100m"
+                memory: "128Mi"
+                ephemeral-storage: "128Mi"
+              limits:
+                cpu: "500m"
+                memory: "512Mi"
+                ephemeral-storage: "512Mi"
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - cts
+                topologyKey: "kubernetes.io/hostname"
+    ```
+
+3. **Create Kubernetes Service**:
+    ```yaml
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: cts-service
+    spec:
+      selector:
+        app: cts
+      ports:
+        - protocol: TCP
+          port: 80
+          targetPort: 8000
+      type: ClusterIP
+    ```
+
+4. **Apply the Deployment and Service**:
+    ```sh
+    kubectl apply -f deployment.yaml
+    kubectl apply -f service.yaml
+    ```
+
+5. **Create Kubernetes HPA**
+    ```yaml
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    metadata:
+      name: cts-hpa
+    spec:
+      scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: cts-deployment
+      minReplicas: 2
+      maxReplicas: 50
+      metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 70
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+          - type: Pods
+            value: 1
+            periodSeconds: 60
+          - type: Percent
+            value: 20
+            periodSeconds: 60
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+          - type: Pods
+            value: 4
+            periodSeconds: 15
+          - type: Percent
+            value: 20
+            periodSeconds: 15
+    ```
+
+6. **Apply the HPA**
+    ```sh
+    kubectl apply -f hpa.yaml
+    ```
