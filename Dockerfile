@@ -1,5 +1,5 @@
 # Use the python-alpine for based image
-FROM python:3.12-alpine
+FROM python:3.12.4-alpine3.20
 
 # Set ENV to send python output straight to the terminal without being buffered
 ENV PYTHONUNBUFFERED=1

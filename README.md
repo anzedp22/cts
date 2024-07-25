@@ -94,7 +94,8 @@ message, minor for "feat" at the start of message, and patch if neither conditio
 ## Automatic scaling with kubernetes
 
 For automatic scaling I would use Kubernetes and its HPA (horizontal pod autoscaling). Kubernetes also ensures high availability by automatically rescheduling pods to other healthy nodes in 
-the cluster if one of the nodes goes down, thereby maintaining the desired state and minimizing downtime.
+the cluster if one of the nodes goes down, thereby maintaining the desired state and minimizing downtime. If CPU usage is high on all nodes, I could use a Grafana alarm to call a webhook, 
+which will then install a new VM in GCP with Terraform, install the needed software for Kubernetes and add this node to the cluster with Ansible.
 
 1. **Install Kubernetes**: I would use a managed Kubernetes service like Google Kubernetes Engine (GKE) or on-prem kubernetes cluster with at least 3 nodes with enough CPU and memory.  
 
@@ -108,6 +109,11 @@ the cluster if one of the nodes goes down, thereby maintaining the desired state
       selector:
         matchLabels:
           app: cts
+      strategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 25%
+          maxSurge: 25%
       template:
         metadata:
           labels:
@@ -128,6 +134,18 @@ the cluster if one of the nodes goes down, thereby maintaining the desired state
                 cpu: "500m"
                 memory: "512Mi"
                 ephemeral-storage: "512Mi"
+            readinessProbe:
+              httpGet:
+                path: /ping
+                port: 8000
+              initialDelaySeconds: 10
+              periodSeconds: 5
+            livenessProbe:
+              httpGet:
+                path: /ping
+                port: 8000
+              initialDelaySeconds: 10
+              periodSeconds: 10
           affinity:
             podAntiAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:
