@@ -12,7 +12,7 @@ def read_version():
     return version
 
 
-# Test helloo world path
+# Test hello world path
 def test_hello_world():
     response = client.get("/")
     assert response.status_code == 200
