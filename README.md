@@ -1,6 +1,7 @@
 # CTS Application
 
-This is a simple FastAPI application with two endpoints: a root endpoint that returns a "Hello World" message and a ping endpoint that returns a 200 status code.
+This is a simple FastAPI application with three endpoints: a root endpoint that returns a "Hello World" message, a ping endpoint that returns a 200 status code and a version
+endpoint that returns version of this application.
 
 ## Run application manually
 
@@ -63,11 +64,12 @@ This is a simple FastAPI application with two endpoints: a root endpoint that re
     pytest
     ```
 
-## Test "/ping" path of the application
+## Test endpoints of the application
 
-1. **When app is running use curl to test path "/ping"**:
+1. **When app is running use curl to test endpoints **:
     ```sh
     curl -v 127.0.0.1:<host_port>/ping
+    curl -v 127.0.0.1:<host_port>/version
     ```
 
 ## GCP
