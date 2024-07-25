@@ -74,7 +74,7 @@ endpoint that returns version of this application.
 
 ## GCP
 
-This solution is running inside Google Cloud Platform (GCP) on a virtual machine. On this machine, I created a user (used in the CI/CD pipeline) and an SSH key pair for that user. 
+This solution is running inside Google Cloud Platform (GCP) on a virtual machine (http://35.205.189.212/). On this machine, I created a user (used in the CI/CD pipeline) and an SSH key pair for that user. 
 I also installed Docker on the machine. On GCP, I created a service account and granted it the following permissions: Artifact Registry Writer/Push, Compute OS Admin Login, 
 Compute Instance Admin (v1), and Service Account User. Additionally, I created an artifact registry for Docker images.
 
